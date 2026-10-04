@@ -1,6 +1,7 @@
 import './App.css'
+import Transactions from "./components/Transactions";
 
-function App() {
+export default function App() {
   return (
     <main>
       <section className="hero-section">
@@ -17,8 +18,8 @@ function App() {
           </div>
         </div>
       </section>
+      {/* <Transactions /> */}
     </main>
   )
 }
 
-export default App
