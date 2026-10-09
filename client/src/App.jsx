@@ -1,215 +1,18 @@
-import { useState } from 'react'
-import './App.css'
-import Transactions from "./components/Transactions";
+import { Navigate, Route, Routes } from "react-router-dom";
+import "./App.css";
 
-function App() {
-  const [page, setPage] = useState('home')
-  const [showPassword, setShowPassword] = useState(false)
-  const [message, setMessage] = useState('')
+import AppLayout from "./components/AppLayout";
+import ProtectedRoute from "./components/ProtectedRoute";
 
-  const [loginForm, setLoginForm] = useState({
-    email: '',
-    password: '',
-  })
+import Dashboard from "./pages/Dashboard";
+import AddExpense from "./pages/AddExpense";
+import EditExpense from "./pages/EditExpense";
+import Expenses from "./pages/Expenses";
+import Report from "./pages/Report";
+import Login from "./pages/login";
+import Register from "./pages/Register";
 
-  const [registerForm, setRegisterForm] = useState({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-  })
-
-  const handleLogin = (event) => {
-    event.preventDefault()
-    setMessage('Login form submitted successfully.')
-  }
-
-  const handleRegister = (event) => {
-    event.preventDefault()
-
-    if (registerForm.password !== registerForm.confirmPassword) {
-      setMessage('Passwords do not match.')
-      return
-    }
-
-    setMessage('Account created successfully!')
-  }
-
-  const goHome = () => {
-    setPage('home')
-    setMessage('')
-    setShowPassword(false)
-  }
-
-  if (page === 'login') {
-    return (
-      <main className="auth-page">
-        <div className="auth-card">
-          <button className="back-button" onClick={goHome}>
-            ← Back to Home
-          </button>
-
-          <div className="brand">
-            <span className="brand-icon">S</span>
-            <span>SmartExpense</span>
-          </div>
-
-          <h1>Welcome Back</h1>
-          <p className="auth-subtitle">
-            Sign in to continue managing your finances.
-          </p>
-
-          <form onSubmit={handleLogin}>
-            <label htmlFor="login-email">Email Address</label>
-            <input
-              id="login-email"
-              type="email"
-              placeholder="you@example.com"
-              value={loginForm.email}
-              onChange={(event) =>
-                setLoginForm({ ...loginForm, email: event.target.value })
-              }
-              required
-            />
-
-            <label htmlFor="login-password">Password</label>
-            <div className="password-wrapper">
-              <input
-                id="login-password"
-                type={showPassword ? 'text' : 'password'}
-                placeholder="Enter your password"
-                value={loginForm.password}
-                onChange={(event) =>
-                  setLoginForm({ ...loginForm, password: event.target.value })
-                }
-                required
-              />
-              <button
-                type="button"
-                className="password-toggle"
-                onClick={() => setShowPassword(!showPassword)}
-              >
-                {showPassword ? 'Hide' : 'Show'}
-              </button>
-            </div>
-
-            <button className="primary-button" type="submit">
-              Sign In
-            </button>
-          </form>
-
-          {message && <p className="success-message">{message}</p>}
-
-          <p className="switch-text">
-            Don't have an account?{' '}
-            <button onClick={() => {
-              setPage('register')
-              setMessage('')
-            }}>
-              Create Account
-            </button>
-          </p>
-        </div>
-      </main>
-    )
-  }
-
-  if (page === 'register') {
-    return (
-      <main className="auth-page">
-        <div className="auth-card">
-          <button className="back-button" onClick={goHome}>
-            ← Back to Home
-          </button>
-
-          <div className="brand">
-            <span className="brand-icon">S</span>
-            <span>SmartExpense</span>
-          </div>
-
-          <h1>Create Your Account</h1>
-          <p className="auth-subtitle">
-            Start taking control of your personal finances today.
-          </p>
-
-          <form onSubmit={handleRegister}>
-            <label htmlFor="register-name">Full Name</label>
-            <input
-              id="register-name"
-              type="text"
-              placeholder="Enter your full name"
-              value={registerForm.name}
-              onChange={(event) =>
-                setRegisterForm({ ...registerForm, name: event.target.value })
-              }
-              required
-            />
-
-            <label htmlFor="register-email">Email Address</label>
-            <input
-              id="register-email"
-              type="email"
-              placeholder="you@example.com"
-              value={registerForm.email}
-              onChange={(event) =>
-                setRegisterForm({ ...registerForm, email: event.target.value })
-              }
-              required
-            />
-
-            <label htmlFor="register-password">Password</label>
-            <input
-              id="register-password"
-              type="password"
-              placeholder="Create a password"
-              value={registerForm.password}
-              onChange={(event) =>
-                setRegisterForm({
-                  ...registerForm,
-                  password: event.target.value,
-                })
-              }
-              required
-              minLength="6"
-            />
-
-            <label htmlFor="confirm-password">Confirm Password</label>
-            <input
-              id="confirm-password"
-              type="password"
-              placeholder="Confirm your password"
-              value={registerForm.confirmPassword}
-              onChange={(event) =>
-                setRegisterForm({
-                  ...registerForm,
-                  confirmPassword: event.target.value,
-                })
-              }
-              required
-              minLength="6"
-            />
-
-            <button className="primary-button" type="submit">
-              Create Account
-            </button>
-          </form>
-
-          {message && <p className="success-message">{message}</p>}
-
-          <p className="switch-text">
-            Already have an account?{' '}
-            <button onClick={() => {
-              setPage('login')
-              setMessage('')
-            }}>
-              Sign In
-            </button>
-          </p>
-        </div>
-      </main>
-    )
-  }
-
+function LandingPage() {
   return (
     <main>
       <section className="hero-section">
@@ -227,19 +30,13 @@ function App() {
           </p>
 
           <div className="hero-actions">
-            <button
-              className="primary-button"
-              onClick={() => setPage('login')}
-            >
+            <a href="/login" className="primary-button">
               Login
-            </button>
+            </a>
 
-            <button
-              className="secondary-button"
-              onClick={() => setPage('register')}
-            >
+            <a href="/register" className="secondary-button">
               Create Account
-            </button>
+            </a>
           </div>
 
           <div className="feature-row">
@@ -261,7 +58,35 @@ function App() {
         </div>
       </section>
     </main>
-  )
+  );
 }
 
-export default App
+function App() {
+  return (
+    <Routes>
+      <Route path="/" element={<LandingPage />} />
+
+      <Route path="/login" element={<Login />} />
+
+      <Route path="/register" element={<Register />} />
+
+      <Route
+        element={
+          <ProtectedRoute>
+            <AppLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/expenses" element={<Expenses />} />
+        <Route path="/expenses/add" element={<AddExpense />} />
+        <Route path="/expenses/edit/:id" element={<EditExpense />} />
+        <Route path="/reports" element={<Report />} />
+      </Route>
+
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+}
+
+export default App;
