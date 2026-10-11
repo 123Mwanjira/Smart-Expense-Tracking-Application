@@ -3,6 +3,7 @@ from flask_cors import CORS
 
 from config import Config
 from app.extensions import db, migrate
+from app.models import User, Category, Expense
 
 
 def create_app(config_class=Config):
