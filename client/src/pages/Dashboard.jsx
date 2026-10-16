@@ -1,287 +1,139 @@
-import { Link } from "react-router-dom";
-import { useFinance } from "../context/useFinance";
-
-function StatCard({ title, amount, description, icon, type }) {
-  return (
-    <div className={`stat-card ${type || ""}`}>
-      <div className="stat-card-header">
-        <span>{title}</span>
-        <span className="stat-icon">{icon}</span>
-      </div>
-
-      <h2>{amount}</h2>
-
-      <p>{description}</p>
-    </div>
-  );
-}
-
-function CategoryBar({ category, amount, total }) {
-  const percentage = total
-    ? Math.min((amount / total) * 100, 100)
-    : 0;
-
-  return (
-    <div className="category-item">
-      <div className="category-info">
-        <span>{category}</span>
-        <strong>KSh {amount.toLocaleString()}</strong>
-      </div>
-
-      <div className="progress-bar">
-        <div
-          className="progress-fill"
-          style={{ width: `${percentage}%` }}
-        ></div>
-      </div>
-
-      <small>{percentage.toFixed(0)}%</small>
-    </div>
-  );
-}
+import React, { useState, useEffect, useMemo } from 'react';
+import StatCard from '../components/StatCard';
+import './Dashboard.css';
 
 export default function Dashboard() {
-  const {
-    expenses,
-    totals,
-    categoryTotals,
-  } = useFinance();
+  const [transactions, setTransactions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('All');
 
-  const recentExpenses = [...expenses]
-    .sort((a, b) => b.date.localeCompare(a.date))
-    .slice(0, 5);
+  // Sync data automatically from Express REST backend when page mounts
+  useEffect(() => {
+    fetch('http://localhost:5555/api/transactions')
+      .then((res) => {
+        if (!res.ok) throw new Error('Data pipeline synchronization failed.');
+        return res.json();
+      })
+      .then((payload) => {
+        setTransactions(payload.data || []);
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError(err.message);
+        setLoading(false);
+      });
+  }, []);
 
-  const categories = Object.entries(categoryTotals)
-    .sort((a, b) => b[1] - a[1]);
+  // Compute key finance values dynamically
+  const { incomeTotal, expenseTotal, netBalance } = useMemo(() => {
+    let inc = 0; let exp = 0;
+    transactions.forEach(t => {
+      t.type === 'income' ? inc += Number(t.amount) : exp += Number(t.amount);
+    });
+    return { incomeTotal: inc, expenseTotal: exp, netBalance: inc - exp };
+  }, [transactions]);
+
+  // Apply visual search filtering and category constraints
+  const filteredData = useMemo(() => {
+    return transactions.filter(t => {
+      const matchText = t.text.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchCat = selectedCategory === 'All' || t.category === selectedCategory;
+      return matchText && matchCat;
+    });
+  }, [transactions, searchTerm, selectedCategory]);
+
+  // Extract spending categories for live analytics tracking
+  const categoryAnalytics = useMemo(() => {
+    const map = {};
+    transactions.forEach(t => {
+      if (t.type === 'expense') map[t.category] = (map[t.category] || 0) + Number(t.amount);
+    });
+    return Object.entries(map);
+  }, [transactions]);
+
+  if (loading) return <div className="loader-box"><p>Synchronizing financial ledgers...</p></div>;
+  if (error) return <div className="error-box"><p>⚠️ Interface Connection Error: {error}</p></div>;
 
   return (
-    <div className="dashboard">
+    <div className="dash-layout">
+      <header className="dash-hero">
+        <h1>Financial Dashboard</h1>
+        <p>Real-time analytics and transaction verification panels.</p>
+      </header>
 
-      {/* Page Header */}
-      <div className="page-header">
-        <div>
-          <span className="eyebrow">Overview</span>
-
-          <h1>Financial Dashboard</h1>
-
-          <p>
-            Track your income, expenses and financial progress.
-          </p>
-        </div>
-
-        <Link
-          to="/expenses/add"
-          className="btn btn-primary"
-        >
-          + Add Expense
-        </Link>
-      </div>
-
-      {/* Statistics */}
-      <div className="stats-grid">
-
-        <StatCard
-          title="Total Income"
-          amount={`KSh ${totals.income.toLocaleString()}`}
-          description="Total money received"
-          icon="↗"
-          type="income"
-        />
-
-        <StatCard
-          title="Total Expenses"
-          amount={`KSh ${totals.expenses.toLocaleString()}`}
-          description="Total money spent"
-          icon="↘"
-          type="expense"
-        />
-
-        <StatCard
-          title="Current Balance"
-          amount={`KSh ${totals.balance.toLocaleString()}`}
-          description="Income minus expenses"
-          icon="◈"
-          type="balance"
-        />
-
-        <StatCard
-          title="Transactions"
-          amount={expenses.length}
-          description="Recorded expenses"
-          icon="▤"
-          type="transactions"
-        />
-
-      </div>
-
-      {/* Main Dashboard */}
-      <div className="dashboard-grid">
-
-        {/* Spending by Category */}
-        <section className="panel">
-
-          <div className="panel-header">
-            <div>
-              <h2>Spending by Category</h2>
-
-              <p>
-                See where your money is going.
-              </p>
-            </div>
-
-            <Link to="/reports">
-              View Report
-            </Link>
-          </div>
-
-          <div className="category-list">
-
-            {categories.length > 0 ? (
-              categories.map(([category, amount]) => (
-                <CategoryBar
-                  key={category}
-                  category={category}
-                  amount={amount}
-                  total={totals.expenses}
-                />
-              ))
-            ) : (
-              <p className="empty-text">
-                No expenses recorded yet.
-              </p>
-            )}
-
-          </div>
-
-        </section>
-
-        {/* Recent Expenses */}
-        <section className="panel">
-
-          <div className="panel-header">
-            <div>
-              <h2>Recent Expenses</h2>
-
-              <p>
-                Your latest transactions.
-              </p>
-            </div>
-
-            <Link to="/expenses">
-              View All
-            </Link>
-          </div>
-
-          <div className="transaction-list">
-
-            {recentExpenses.length > 0 ? (
-              recentExpenses.map((expense) => (
-                <div
-                  className="transaction"
-                  key={expense.id}
-                >
-
-                  <div className="transaction-icon">
-                    💰
-                  </div>
-
-                  <div className="transaction-info">
-
-                    <strong>
-                      {expense.title}
-                    </strong>
-
-                    <small>
-                      {expense.category} • {expense.date}
-                    </small>
-
-                  </div>
-
-                  <strong className="expense-amount">
-                    - KSh{" "}
-                    {Number(
-                      expense.amount
-                    ).toLocaleString()}
-                  </strong>
-
-                </div>
-              ))
-            ) : (
-              <p className="empty-text">
-                No expenses recorded yet.
-              </p>
-            )}
-
-          </div>
-
-        </section>
-
-      </div>
-
-      {/* Financial Summary */}
-      <section className="panel financial-summary">
-
-        <div className="panel-header">
-
-          <div>
-            <h2>Financial Summary</h2>
-
-            <p>
-              Your overall financial position.
-            </p>
-          </div>
-
-          <Link to="/reports">
-            View Reports
-          </Link>
-
-        </div>
-
-        <div className="summary-grid">
-
-          <div className="summary-item">
-            <span>Total Income</span>
-
-            <strong>
-              KSh {totals.income.toLocaleString()}
-            </strong>
-          </div>
-
-          <div className="summary-item">
-            <span>Total Expenses</span>
-
-            <strong>
-              KSh {totals.expenses.toLocaleString()}
-            </strong>
-          </div>
-
-          <div className="summary-item">
-            <span>Remaining Balance</span>
-
-            <strong>
-              KSh {totals.balance.toLocaleString()}
-            </strong>
-          </div>
-
-          <div className="summary-item">
-            <span>Expense Rate</span>
-
-            <strong>
-              {totals.income > 0
-                ? (
-                    (totals.expenses /
-                      totals.income) *
-                    100
-                  ).toFixed(1)
-                : 0}
-              %
-            </strong>
-          </div>
-
-        </div>
-
+      {/* Metrics Scoreboard displaying modular components */}
+      <section className="score-grid">
+        <StatCard label="Available Balance" value={netBalance} type="balance" />
+        <StatCard label="Total Earnings" value={incomeTotal} type="income" />
+        <StatCard label="Total Debits" value={expenseTotal} type="expense" />
       </section>
 
+      <div className="content-split">
+        <main className="ledger-card shadow-sm">
+          <div className="ledger-controls">
+            <h2>Transaction Records</h2>
+            <div className="inputs-cluster">
+              <input 
+                type="text" 
+                placeholder="Search descriptions..." 
+                value={searchTerm} 
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)}>
+                <option value="All">All Sectors</option>
+                <option value="Income">Income Streams</option>
+                <option value="Food">Food / Groceries</option>
+                <option value="Utilities">Utilities / Bills</option>
+                <option value="Entertainment">Entertainment</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="table-responsive">
+            {filteredData.length > 0 ? (
+              <table className="ledger-table">
+                <thead>
+                  <tr>
+                    <th>Details</th>
+                    <th>Sector</th>
+                    <th>Date Stamp</th>
+                    <th style={{ textAlign: 'right' }}>Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredData.map((t) => (
+                    <tr key={t.id}>
+                      <td className="font-medium">{t.text}</td>
+                      <td><span className="pill-tag">{t.category}</span></td>
+                      <td className="text-muted">{t.date}</td>
+                      <td className={`font-bold align-right ${t.type}`}>
+                        {t.type === 'income' ? '+' : '-'}\Total \${t.amount}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <div className="empty-state">No matching parameters found in this account.</div>
+            )}
+          </div>
+        </main>
+
+        <aside className="analytics-card shadow-sm">
+          <h2>Outlays by Sector</h2>
+          <div className="sector-stack">
+            {categoryAnalytics.map(([cat, val]) => (
+              <div key={cat} className="sector-row">
+                <span className="sector-title">{cat}</span>
+                <span className="sector-val">\${val.toLocaleString()}</span>
+              </div>
+            ))}
+            {categoryAnalytics.length === 0 && <div className="empty-state">No debit data logged.</div>}
+          </div>
+        </aside>
+      </div>
     </div>
   );
 }
