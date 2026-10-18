@@ -322,7 +322,7 @@ Run the frontend production build from `client`:
 npm run build
 ```
 
-The backend tests cover the implemented health endpoint and data models. Continue adding tests for authentication, validation, expense operations, database behavior, and frontend integration as those features are implemented.
+The backend tests cover health checks, database models, authentication, and transaction operations, including transaction creation, updates, deletion, filtering, and access control. Run the frontend production build separately to verify that the React/Vite application compiles successfully. Full end-to-end frontend-to-backend integration should be verified before deployment.
 
 ## Git Collaboration Workflow
 
