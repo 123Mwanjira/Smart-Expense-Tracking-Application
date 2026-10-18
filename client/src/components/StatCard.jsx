@@ -1,5 +1,3 @@
-import React from 'react';
-
 export default function StatCard({ label, value, type }) {
   // Determine text coloring classes dynamically
   const colorClass = type === 'income' ? 'pos' : type === 'expense' ? 'neg' : value >= 0 ? 'pos' : 'neg';

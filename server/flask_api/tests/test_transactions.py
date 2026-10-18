@@ -31,16 +31,25 @@ def create_category(app, user_email, name="Food"):
         user = db.session.scalar(
             db.select(User).where(User.email == user_email)
         )
-        category = Category(
-            name=name,
-            description=f"{name} category",
-            user_id=user.id,
+
+        category = db.session.scalar(
+            db.select(Category).where(
+                Category.user_id == user.id,
+                Category.name == name,
+            )
         )
-        db.session.add(category)
-        db.session.commit()
+
+        if category is None:
+            category = Category(
+                name=name,
+                description=f"{name} category",
+                user_id=user.id,
+            )
+            db.session.add(category)
+            db.session.commit()
+
         return category.id
-
-
+        
 def transaction_payload(category_id, **overrides):
     payload = {
         "description": "Lunch",

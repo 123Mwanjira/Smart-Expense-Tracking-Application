@@ -6,6 +6,7 @@ from app.extensions import db, migrate
 from app.models import User, Category, Expense
 from app.routes.auth import auth_bp
 from app.routes.transactions import transactions_bp
+from app.routes.categories import categories_bp
 
 
 def create_app(config_class=Config):
@@ -17,6 +18,7 @@ def create_app(config_class=Config):
     migrate.init_app(app, db)
     app.register_blueprint(auth_bp)
     app.register_blueprint(transactions_bp)
+    app.register_blueprint(categories_bp)
 
 
     @app.get("/api/health")
