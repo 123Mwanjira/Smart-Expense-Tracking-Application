@@ -5,3 +5,5 @@ Flask-SQLAlchemy
 psycopg[binary]
 python-dotenv
 pytest
+
+PyJWT
