@@ -7,7 +7,7 @@ from sqlalchemy import or_
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from app.extensions import db
-from app.models import User
+from app.models import Category, User
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 
@@ -78,8 +78,32 @@ def register():
         password_hash=generate_password_hash(password),
     )
 
+    default_categories = [
+        "Food",
+        "Transport",
+        "Utilities",
+        "Shopping",
+        "Entertainment",
+        "Health",
+        "Education",
+        "Rent",
+        "Other",
+        "Salary",
+        "Other Income",
+    ]
+
     try:
         db.session.add(user)
+        db.session.flush()
+
+        for category_name in default_categories:
+            db.session.add(
+                Category(
+                    name=category_name,
+                    user_id=user.id,
+                )
+            )
+
         db.session.commit()
     except Exception:
         db.session.rollback()

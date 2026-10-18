@@ -1,30 +1,79 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import StatCard from '../components/StatCard';
+import { useAuth } from '../context/useAuth';
 import './Dashboard.css';
 
 export default function Dashboard() {
+  const { token, logout } = useAuth();
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
 
-  // Sync data automatically from Express REST backend when page mounts
+  // Load this user's transactions from the authenticated Flask API.
   useEffect(() => {
-    fetch('http://localhost:5555/api/transactions')
-      .then((res) => {
-        if (!res.ok) throw new Error('Data pipeline synchronization failed.');
-        return res.json();
-      })
-      .then((payload) => {
-        setTransactions(payload.data || []);
+    let cancelled = false;
+
+    async function loadTransactions() {
+      setLoading(true);
+      setError(null);
+
+      if (!token) {
+        setError("Your session has expired. Please sign in again.");
         setLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message);
-        setLoading(false);
-      });
-  }, []);
+        return;
+      }
+
+      try {
+        const apiBaseUrl = (
+          import.meta.env.VITE_API_URL || "http://127.0.0.1:5000"
+        ).replace(/\/$/, "");
+
+        const response = await fetch(`${apiBaseUrl}/api/transactions`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const payload = await response.json().catch(() => ({}));
+
+        if (response.status === 401) {
+          logout();
+          throw new Error("Your session has expired. Please sign in again.");
+        }
+
+        if (!response.ok) {
+          throw new Error(
+            payload.error || payload.message || "Unable to load transactions."
+          );
+        }
+
+        const rows = (payload.transactions || []).map((item) => ({
+          id: item.id,
+          text: item.description,
+          amount: Number(item.amount),
+          type: item.transaction_type,
+          category: item.category_name || item.category || "Uncategorized",
+          date: item.transaction_date,
+        }));
+
+        if (!cancelled) setTransactions(rows);
+      } catch (err) {
+        if (!cancelled) {
+          setError(err.message || "Could not connect to the Flask API.");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    loadTransactions();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token, logout]);
 
   // Compute key finance values dynamically
   const { incomeTotal, expenseTotal, netBalance } = useMemo(() => {
